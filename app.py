@@ -428,20 +428,20 @@ def page_component_column():
 
 
 component_col = page_component_column()
-
-
 # ============================================================
 # 1. COMPONENT INSPECTOR
 # ============================================================
 
 if page == "Component Inspector":
 
-    st.title("Component Inspector")
-
-    st.write(
-        "Inspect an electronic component and view its leakage "
-        "current, anomaly score, predicted behaviour and safety status."
-    )
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">▣ Component Inspector</div>
+        <div class="section-sub">
+            Inspect leakage behaviour, AI predictions, anomaly score and safety status.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     components = df[component_col].astype(str).tolist()
 
@@ -485,113 +485,209 @@ if page == "Component Inspector":
 
     risk = str(a.get("risk", "SAFE"))
 
-    st.markdown("---")
+    # --------------------------------------------------------
+    # TOP COMPONENT CARDS
+    # --------------------------------------------------------
 
-    c1, c2, c3 = st.columns(3)
+    c1, c2, c3 = st.columns([1, 1.4, 1])
 
     with c1:
-        st.subheader("Component")
-
-        st.metric(
-            "Component ID",
-            selected
-        )
-
-        st.write(f"**LOT:** {lot}")
-        st.write(f"**Type:** {component_type}")
+        st.markdown(f"""
+        <div class="card component-card">
+            <div class="small">SELECTED COMPONENT</div>
+            <div class="component-id">{selected}</div>
+            <span class="tag">{lot}</span>
+            <span class="tag">{component_type}</span>
+            <div class="param">
+                Leakage Current
+                <span class="cyan">{v24:.2f} μA</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c2:
-        st.subheader("Risk Level")
 
         if risk == "SAFE":
-            st.success("✓ SAFE")
+            risk_class = "risk-safe"
+            risk_symbol = "✓"
+            risk_message = (
+                "Component behaviour is within the expected "
+                "population and drift envelope."
+            )
         elif risk == "MEDIUM":
-            st.warning("⚠ MEDIUM")
+            risk_class = "risk-medium"
+            risk_symbol = "!"
+            risk_message = (
+                "Component requires closer monitoring based "
+                "on anomaly and drift indicators."
+            )
         else:
-            st.error("✕ HIGH")
+            risk_class = "risk-high"
+            risk_symbol = "!"
+            risk_message = (
+                "Component exceeds expected limits and "
+                "should be investigated."
+            )
+
+        st.markdown(f"""
+        <div class="card risk-card {risk_class}">
+            <div class="risk-icon">{risk_symbol}</div>
+            <div class="risk-label">RISK LEVEL</div>
+            <div class="risk-value">{risk}</div>
+            <div class="risk-text">{risk_message}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c3:
-        st.subheader("AI Prediction")
+        st.markdown(f"""
+        <div class="card metric-card">
+            <div class="metric">
+                Current (24h)
+                <b class="cyan">{v24:.2f} μA</b>
+            </div>
+            <div class="metric">
+                Predicted (168h)
+                <b class="purple">{pred168:.2f} μA</b>
+            </div>
+            <div class="metric">
+                Safety Margin
+                <b>{margin:.2f} μA</b>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.metric(
-            "Current Leakage",
-            f"{v24:.2f} μA"
-        )
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
+# --------------------------------------------------------
+    # AI INSPECTION RESULTS
+    # --------------------------------------------------------
 
-        st.metric(
-            "Predicted 168h",
-            f"{pred168:.2f} μA"
-        )
-
-    st.markdown("---")
-
-    st.subheader("AI Inspection Results")
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">AI Inspection Results</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     m1, m2, m3, m4 = st.columns(4)
 
-    with m1:
-        st.metric(
-            "Anomaly Score",
-            f"{anomaly:.3f}"
-        )
+    cards = [
+        ("ANOMALY SCORE", f"{anomaly:.3f}", "cyan"),
+        ("PREDICTED SLOPE", f"{pred_slope:.3f} μA/h", "purple"),
+        ("SAFETY MARGIN", f"{margin:.2f} μA", "green"),
+        ("TEST LIMIT", f"{limit:.2f} μA", "yellow")
+    ]
 
-    with m2:
-        st.metric(
-            "Predicted Slope",
-            f"{pred_slope:.3f} μA/h"
-        )
+    for col, (label, value, cls) in zip(
+        [m1, m2, m3, m4],
+        cards
+    ):
+        with col:
+            st.markdown(f"""
+            <div class="kpi">
+                <div class="kpi-label">{label}</div>
+                <div class="kpi-value {cls}">{value}</div>
+                <div class="kpi-note">AI inspection metric</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    with m3:
-        st.metric(
-            "Safety Margin",
-            f"{margin:.2f} μA"
-        )
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
 
-    with m4:
-        st.metric(
-            "Test Limit",
-            f"{limit:.2f} μA"
-        )
+    # --------------------------------------------------------
+    # LEAKAGE CHART
+    # --------------------------------------------------------
 
-    st.markdown("---")
-
-    st.subheader("Burn-In Leakage Current")
+    st.markdown("""
+    <div class="chart-card">
+        <div class="chart-title">Burn-In Leakage Current Trend</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     chart_df = pd.DataFrame({
         "Time (hours)": [0, 24, 96, 168],
-        "Leakage Current (μA)": [
-            v0,
-            v24,
-            v96,
-            v168
-        ]
+        "Actual Leakage": [v0, v24, v96, v168],
+        "Predicted Leakage": [None, None, v96, pred168]
     })
 
-    st.line_chart(
-        chart_df.set_index("Time (hours)")
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=chart_df["Time (hours)"],
+            y=chart_df["Actual Leakage"],
+            mode="lines+markers+text",
+            text=[
+                f"{v0:.2f}",
+                f"{v24:.2f}",
+                f"{v96:.2f}",
+                f"{v168:.2f}"
+            ],
+            textposition="top center",
+            name="Actual",
+            line=dict(width=2.5),
+            marker=dict(size=8)
+        )
     )
 
-    st.markdown("---")
+    fig.add_trace(
+        go.Scatter(
+            x=[96, 168],
+            y=[v96, pred168],
+            mode="lines+markers+text",
+            text=[
+                f"{v96:.2f}",
+                f"{pred168:.2f}"
+            ],
+            textposition="top center",
+            name="AI Predicted",
+            line=dict(width=2.5, dash="dash"),
+            marker=dict(size=8)
+        )
+    )
+
+    fig.add_hline(
+        y=limit,
+        line_dash="dash",
+        annotation_text=f"Safety Limit: {limit:.1f} μA",
+        annotation_position="top right"
+    )
+
+    fig.update_layout(
+        height=330,
+        margin=dict(l=20, r=20, t=20, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        xaxis_title="Burn-In Time (hours)",
+        yaxis_title="Leakage Current (μA)",
+        legend=dict(orientation="h")
+    )
+
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False}
+    )
+# --------------------------------------------------------
+    # AI INTERPRETATION
+    # --------------------------------------------------------
 
     if risk == "SAFE":
-
         st.success(
-            f"Component {selected} is currently SAFE. "
-            f"The predicted leakage is {pred168:.2f} μA."
+            f"✓ AI assessment: {selected} is operating within "
+            f"the expected safety envelope. Predicted 168h leakage "
+            f"is {pred168:.2f} μA against a limit of {limit:.2f} μA."
         )
 
     elif risk == "MEDIUM":
-
         st.warning(
-            f"Component {selected} requires closer monitoring. "
-            f"The AI detected abnormal behaviour or increasing drift."
+            f"⚠ AI assessment: {selected} shows behaviour that "
+            f"requires closer monitoring. Predicted leakage is "
+            f"{pred168:.2f} μA."
         )
 
     else:
-
         st.error(
-            f"Component {selected} is HIGH RISK. "
-            f"The component should be investigated."
+            f"✕ AI assessment: {selected} is classified as HIGH RISK "
+            f"and should be investigated."
         )
 
     st.stop()
@@ -603,19 +699,19 @@ if page == "Component Inspector":
 
 elif page == "Anomaly Detection":
 
-    st.title("Anomaly Detection")
-
-    st.write(
-        "The AI identifies components whose behaviour differs "
-        "from the expected population."
-    )
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">△ Anomaly Detection</div>
+        <div class="section-sub">
+            Identify components whose behaviour differs from the expected population.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     anomaly_df = analysis.copy()
 
     anomaly_df["Component"] = (
-        df[component_col]
-        .astype(str)
-        .values
+        df[component_col].astype(str).values
     )
 
     anomaly_df["Anomaly Score"] = pd.to_numeric(
@@ -626,8 +722,7 @@ elif page == "Anomaly Detection":
     anomaly_df["Status"] = anomaly_df[
         "Anomaly Score"
     ].apply(
-        lambda x:
-        "ANOMALY" if x >= 0.5 else "NORMAL"
+        lambda x: "ANOMALY" if x >= 0.5 else "NORMAL"
     )
 
     total_components = len(anomaly_df)
@@ -641,36 +736,103 @@ elif page == "Anomaly Detection":
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.metric(
-            "Components Tested",
-            total_components
-        )
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">COMPONENTS TESTED</div>
+            <div class="kpi-value cyan">{total_components:,}</div>
+            <div class="kpi-note">Total screened</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c2:
-        st.metric(
-            "Anomalies Detected",
-            detected
-        )
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">ANOMALIES DETECTED</div>
+            <div class="kpi-value yellow">{detected:,}</div>
+            <div class="kpi-note">
+                {detected / total_components * 100:.1f}% of total
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c3:
-        st.metric(
-            "Normal Components",
-            normal
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">NORMAL COMPONENTS</div>
+            <div class="kpi-value green">{normal:,}</div>
+            <div class="kpi-note">
+                {normal / total_components * 100:.1f}% of total
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
+
+    left, right = st.columns([1.6, 1])
+
+    with left:
+
+        st.markdown("""
+        <div class="chart-card">
+            <div class="chart-title">Anomaly Score Distribution</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        plot_df = anomaly_df.head(40)
+
+        fig = go.Figure()
+
+        fig.add_trace(
+            go.Bar(
+                x=plot_df["Component"],
+                y=plot_df["Anomaly Score"],
+                name="Anomaly Score"
+            )
         )
 
-    st.markdown("---")
+        fig.add_hline(
+            y=0.5,
+            line_dash="dash",
+            annotation_text="Detection Threshold"
+        )
 
-    st.subheader("Anomaly Score Distribution")
+        fig.update_layout(
+            height=350,
+            margin=dict(l=20, r=20, t=20, b=20),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"),
+            xaxis_title="Component",
+            yaxis_title="Anomaly Score"
+        )
 
-    st.bar_chart(
-        anomaly_df
-        .set_index("Component")["Anomaly Score"]
-        .head(30)
-    )
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={"displayModeBar": False}
+        )
 
-    st.markdown("---")
+    with right:
 
-    st.subheader("Detected Anomalies")
+        st.markdown(f"""
+        <div class="card risk-card">
+            <div class="risk-icon">△</div>
+            <div class="risk-label">AI ANOMALY STATUS</div>
+            <div class="risk-value">{detected:,}</div>
+            <div class="risk-text">
+                components have behaviour outside the normal
+                anomaly threshold.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">Detected Anomalies</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     abnormal = anomaly_df[
         anomaly_df["Anomaly Score"] >= 0.5
@@ -681,9 +843,7 @@ elif page == "Anomaly Detection":
 
     if len(abnormal) == 0:
 
-        st.success(
-            "No significant anomalies detected."
-        )
+        st.success("✓ No significant anomalies detected.")
 
     else:
 
@@ -695,31 +855,30 @@ elif page == "Anomaly Detection":
                     "Status"
                 ]
             ],
-            use_container_width=True
+            use_container_width=True,
+            hide_index=True
         )
 
     st.stop()
-
-
 # ============================================================
 # 3. DRIFT PREDICTION
 # ============================================================
 
 elif page == "Drift Prediction":
 
-    st.title("Drift Prediction")
-
-    st.write(
-        "The AI predicts future leakage behaviour and identifies "
-        "components showing increasing drift."
-    )
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">→ Drift Prediction</div>
+        <div class="section-sub">
+            Predict future leakage behaviour and identify increasing drift.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     drift_df = analysis.copy()
 
     drift_df["Component"] = (
-        df[component_col]
-        .astype(str)
-        .values
+        df[component_col].astype(str).values
     )
 
     drift_df["Predicted Leakage (168h)"] = pd.to_numeric(
@@ -732,48 +891,91 @@ elif page == "Drift Prediction":
         errors="coerce"
     )
 
+    increasing = int(
+        (drift_df["Predicted Slope"] > 0).sum()
+    )
+
+    avg_prediction = drift_df[
+        "Predicted Leakage (168h)"
+    ].mean()
+
+    max_prediction = drift_df[
+        "Predicted Leakage (168h)"
+    ].max()
+
     c1, c2, c3 = st.columns(3)
 
     with c1:
-
-        st.metric(
-            "Average Predicted Leakage",
-            f"{drift_df['Predicted Leakage (168h)'].mean():.2f} μA"
-        )
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">AVG PREDICTED LEAKAGE</div>
+            <div class="kpi-value cyan">{avg_prediction:.2f} μA</div>
+            <div class="kpi-note">168-hour prediction</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c2:
-
-        st.metric(
-            "Maximum Predicted Leakage",
-            f"{drift_df['Predicted Leakage (168h)'].max():.2f} μA"
-        )
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">MAX PREDICTED LEAKAGE</div>
+            <div class="kpi-value yellow">{max_prediction:.2f} μA</div>
+            <div class="kpi-note">Highest predicted value</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c3:
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">INCREASING COMPONENTS</div>
+            <div class="kpi-value purple">{increasing:,}</div>
+            <div class="kpi-note">Positive predicted slope</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        increasing = int(
-            (drift_df["Predicted Slope"] > 0).sum()
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="chart-card">
+        <div class="chart-title">Predicted Leakage Behaviour</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    plot_df = drift_df.head(50)
+
+    fig = go.Figure()
+
+    fig.add_trace(
+        go.Scatter(
+            x=plot_df["Component"],
+            y=plot_df["Predicted Leakage (168h)"],
+            mode="lines+markers",
+            name="AI Prediction"
         )
-
-        st.metric(
-            "Increasing Components",
-            increasing
-        )
-
-    st.markdown("---")
-
-    st.subheader("Predicted Leakage")
-
-    st.line_chart(
-        drift_df[
-            [
-                "Predicted Leakage (168h)"
-            ]
-        ].head(50)
     )
 
-    st.markdown("---")
+    fig.update_layout(
+        height=350,
+        margin=dict(l=20, r=20, t=20, b=20),
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white"),
+        xaxis_title="Component",
+        yaxis_title="Predicted Leakage (μA)"
+    )
 
-    st.subheader("Drift Analysis")
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={"displayModeBar": False}
+    )
+
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">Drift Analysis</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     drift_risk = drift_df[
         drift_df["Predicted Slope"] > 0
@@ -784,9 +986,7 @@ elif page == "Drift Prediction":
 
     if len(drift_risk) == 0:
 
-        st.success(
-            "No increasing drift detected."
-        )
+        st.success("✓ No increasing drift detected.")
 
     else:
 
@@ -798,37 +998,35 @@ elif page == "Drift Prediction":
                     "Predicted Slope"
                 ]
             ],
-            use_container_width=True
+            use_container_width=True,
+            hide_index=True
         )
 
     st.stop()
-
-
 # ============================================================
 # 4. SAFETY ANALYSIS
 # ============================================================
 
 elif page == "Safety Analysis":
 
-    st.title("Safety Analysis")
-
-    st.write(
-        "The system combines anomaly detection, predicted drift "
-        "and safety limits to classify component risk."
-    )
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">◇ Safety Analysis</div>
+        <div class="section-sub">
+            Combine anomaly, drift and leakage limits into an overall safety assessment.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     safety_df = analysis.copy()
 
     safety_df["Component"] = (
-        df[component_col]
-        .astype(str)
-        .values
+        df[component_col].astype(str).values
     )
 
-    safety_df["Risk"] = (
-        safety_df["risk"]
-        .astype(str)
-    )
+    safety_df["Risk"] = safety_df[
+        "risk"
+    ].astype(str)
 
     safe_count = int(
         (safety_df["Risk"] == "SAFE").sum()
@@ -845,53 +1043,117 @@ elif page == "Safety Analysis":
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.success(
-            f"SAFE\n\n{safe_count}"
-        )
+        st.markdown(f"""
+        <div class="card risk-card risk-safe">
+            <div class="risk-icon">✓</div>
+            <div class="risk-label">SAFE</div>
+            <div class="risk-value">{safe_count:,}</div>
+            <div class="risk-text">Components within expected limits</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c2:
-        st.warning(
-            f"MEDIUM\n\n{medium_count}"
-        )
+        st.markdown(f"""
+        <div class="card risk-card risk-medium">
+            <div class="risk-icon">!</div>
+            <div class="risk-label">MEDIUM</div>
+            <div class="risk-value">{medium_count:,}</div>
+            <div class="risk-text">Components requiring monitoring</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c3:
-        st.error(
-            f"HIGH\n\n{high_count}"
+        st.markdown(f"""
+        <div class="card risk-card risk-high">
+            <div class="risk-icon">!</div>
+            <div class="risk-label">HIGH</div>
+            <div class="risk-value">{high_count:,}</div>
+            <div class="risk-text">Components requiring investigation</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
+
+    left, right = st.columns([1.4, 1])
+
+    with left:
+
+        st.markdown("""
+        <div class="chart-card">
+            <div class="chart-title">Risk Distribution</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        risk_chart = pd.DataFrame({
+            "Risk Level": ["SAFE", "MEDIUM", "HIGH"],
+            "Components": [
+                safe_count,
+                medium_count,
+                high_count
+            ]
+        })
+
+        fig = go.Figure(
+            data=[
+                go.Bar(
+                    x=risk_chart["Risk Level"],
+                    y=risk_chart["Components"]
+                )
+            ]
         )
 
-    st.markdown("---")
+        fig.update_layout(
+            height=330,
+            margin=dict(l=20, r=20, t=20, b=20),
+            paper_bgcolor="rgba(0,0,0,0)",
+            plot_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="white"),
+            xaxis_title="Risk Level",
+            yaxis_title="Components"
+        )
 
-    st.subheader("Risk Distribution")
+        st.plotly_chart(
+            fig,
+            use_container_width=True,
+            config={"displayModeBar": False}
+        )
 
-    risk_chart = pd.DataFrame({
-        "Risk Level": [
-            "SAFE",
-            "MEDIUM",
-            "HIGH"
-        ],
-        "Components": [
-            safe_count,
-            medium_count,
-            high_count
-        ]
-    })
+    with right:
 
-    st.bar_chart(
-        risk_chart.set_index("Risk Level")
-    )
+        safe_percentage = (
+            safe_count / len(safety_df) * 100
+            if len(safety_df) else 0
+        )
 
-    st.markdown("---")
+        st.markdown(f"""
+        <div class="card">
+            <div class="small">AI SAFETY SUMMARY</div>
+            <div class="component-id">
+                {safe_percentage:.1f}%
+            </div>
+            <div class="risk-text">
+                of inspected components are currently
+                classified as SAFE.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.subheader("Components Requiring Attention")
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
 
     attention = safety_df[
         safety_df["Risk"] != "SAFE"
     ]
 
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">Components Requiring Attention</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     if len(attention) == 0:
 
         st.success(
-            "All components are currently classified as SAFE."
+            "✓ All components are currently classified as SAFE."
         )
 
     else:
@@ -903,24 +1165,25 @@ elif page == "Safety Analysis":
                     "Risk"
                 ]
             ],
-            use_container_width=True
+            use_container_width=True,
+            hide_index=True
         )
 
     st.stop()
-
-
 # ============================================================
 # 5. MODEL PERFORMANCE
 # ============================================================
 
 elif page == "Model Performance":
 
-    st.title("Model Performance")
-
-    st.write(
-        "Performance indicators for the AI inspection and "
-        "classification system."
-    )
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">▣ Model Performance</div>
+        <div class="section-sub">
+            Evaluate the performance of the AI inspection and classification system.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if "ground_truth_class" in df.columns:
 
@@ -947,62 +1210,89 @@ elif page == "Model Performance":
 
         accuracy = 95.0
 
+    anomaly_predictions = int(
+        (analysis["anomaly_score"] >= 0.5).sum()
+    )
+
     c1, c2, c3 = st.columns(3)
 
     with c1:
-
-        st.metric(
-            "Model Accuracy",
-            f"{accuracy:.1f}%"
-        )
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">MODEL ACCURACY</div>
+            <div class="kpi-value purple">{accuracy:.1f}%</div>
+            <div class="kpi-note">Overall classification accuracy</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c2:
-
-        st.metric(
-            "Components Evaluated",
-            len(df)
-        )
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">COMPONENTS EVALUATED</div>
+            <div class="kpi-value cyan">{len(df):,}</div>
+            <div class="kpi-note">Components processed</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     with c3:
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">ANOMALY PREDICTIONS</div>
+            <div class="kpi-value yellow">{anomaly_predictions:,}</div>
+            <div class="kpi-note">AI flagged components</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.metric(
-            "Anomaly Predictions",
-            int(
-                (analysis["anomaly_score"] >= 0.5)
-                .sum()
-            )
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+
+    left, right = st.columns([1.2, 1])
+
+    with left:
+
+        performance_df = pd.DataFrame({
+            "Metric": [
+                "Model Accuracy",
+                "Components Evaluated",
+                "Anomalies Detected"
+            ],
+            "Value": [
+                f"{accuracy:.1f}%",
+                f"{len(df):,}",
+                f"{anomaly_predictions:,}"
+            ]
+        })
+
+        st.markdown("""
+        <div class="chart-card">
+            <div class="chart-title">Prediction Summary</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        st.dataframe(
+            performance_df,
+            use_container_width=True,
+            hide_index=True
         )
 
-    st.markdown("---")
+    with right:
 
-    st.subheader("Prediction Summary")
-
-    performance_df = pd.DataFrame({
-        "Metric": [
-            "Model Accuracy",
-            "Components Evaluated",
-            "Anomalies Detected"
-        ],
-        "Value": [
-            f"{accuracy:.1f}%",
-            len(df),
-            int(
-                (analysis["anomaly_score"] >= 0.5)
-                .sum()
-            )
-        ]
-    })
-
-    st.dataframe(
-        performance_df,
-        use_container_width=True,
-        hide_index=True
-    )
+        st.markdown(f"""
+        <div class="card risk-card risk-safe">
+            <div class="risk-icon">✓</div>
+            <div class="risk-label">AI MODEL STATUS</div>
+            <div class="risk-value">ACTIVE</div>
+            <div class="risk-text">
+                Inspection engine processed {len(df):,}
+                components with an observed accuracy of
+                {accuracy:.1f}%.
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
     st.info(
-        "The displayed accuracy is calculated from the available "
-        "ground-truth labels when present. Otherwise the prototype "
-        "uses its existing fallback performance value."
+        "Accuracy is calculated from available ground-truth labels. "
+        "If labels are unavailable, the prototype uses its existing "
+        "fallback performance value."
     )
 
     st.stop()
@@ -1014,69 +1304,80 @@ elif page == "Model Performance":
 
 elif page == "Settings":
 
-    st.title("Settings")
-
-    st.write(
-        "Adjust the inspection thresholds used by the prototype."
-    )
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">⚙ Settings</div>
+        <div class="section-sub">
+            Configure the thresholds used by the inspection prototype.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     if "anomaly_threshold" not in st.session_state:
-
         st.session_state.anomaly_threshold = 0.5
 
     if "safety_limit" not in st.session_state:
-
         st.session_state.safety_limit = 50.0
 
-    anomaly_threshold = st.slider(
-        "Anomaly Detection Threshold",
-        min_value=0.0,
-        max_value=1.0,
-        value=float(
-            st.session_state.anomaly_threshold
-        ),
-        step=0.05
-    )
+    left, right = st.columns([1.3, 1])
 
-    safety_limit = st.number_input(
-        "Safety Leakage Limit (μA)",
-        min_value=0.0,
-        value=float(
-            st.session_state.safety_limit
-        ),
-        step=1.0
-    )
+    with left:
 
-    st.session_state.anomaly_threshold = (
-        anomaly_threshold
-    )
+        st.markdown("""
+        <div class="chart-card">
+            <div class="chart-title">Inspection Configuration</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.session_state.safety_limit = (
-        safety_limit
-    )
-
-    st.markdown("---")
-
-    st.subheader("Current Configuration")
-
-    s1, s2 = st.columns(2)
-
-    with s1:
-
-        st.metric(
-            "Anomaly Threshold",
-            f"{anomaly_threshold:.2f}"
+        anomaly_threshold = st.slider(
+            "Anomaly Detection Threshold",
+            min_value=0.0,
+            max_value=1.0,
+            value=float(
+                st.session_state.anomaly_threshold
+            ),
+            step=0.05
         )
 
-    with s2:
-
-        st.metric(
-            "Safety Limit",
-            f"{safety_limit:.1f} μA"
+        safety_limit = st.number_input(
+            "Safety Leakage Limit (μA)",
+            min_value=0.0,
+            value=float(
+                st.session_state.safety_limit
+            ),
+            step=1.0
         )
+
+        st.session_state.anomaly_threshold = anomaly_threshold
+        st.session_state.safety_limit = safety_limit
+
+    with right:
+
+        st.markdown(f"""
+        <div class="card">
+            <div class="small">CURRENT CONFIGURATION</div>
+
+            <div class="metric">
+                Anomaly Threshold
+                <b class="purple">{anomaly_threshold:.2f}</b>
+            </div>
+
+            <div class="metric">
+                Safety Limit
+                <b class="cyan">{safety_limit:.1f} μA</b>
+            </div>
+
+            <div class="metric">
+                Model Status
+                <b class="green">ACTIVE</b>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
 
     st.success(
-        "Settings updated for this session."
+        "✓ Settings updated for this session."
     )
 
     st.info(
@@ -1093,69 +1394,116 @@ elif page == "Settings":
 
 elif page == "Export Report":
 
-    st.title("Export Report")
-
-    st.write(
-        "Download the AI inspection results for further analysis "
-        "or presentation."
-    )
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">▣ Export Report</div>
+        <div class="section-sub">
+            Review and download AI inspection results.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     report_df = analysis.copy()
 
     report_df.insert(
         0,
         "Component ID",
-        df[component_col]
-        .astype(str)
-        .values
+        df[component_col].astype(str).values
     )
 
-    st.subheader("Inspection Results")
+    # --------------------------------------------------------
+    # REPORT KPI CARDS
+    # --------------------------------------------------------
+
+    total = len(report_df)
+
+    safe = int(
+        (analysis["risk"] == "SAFE").sum()
+    ) if "risk" in analysis.columns else 0
+
+    medium = int(
+        (analysis["risk"] == "MEDIUM").sum()
+    ) if "risk" in analysis.columns else 0
+
+    high = int(
+        (analysis["risk"] == "HIGH").sum()
+    ) if "risk" in analysis.columns else 0
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    export_cards = [
+        ("TOTAL INSPECTED", total, "cyan"),
+        ("SAFE", safe, "green"),
+        ("MEDIUM", medium, "yellow"),
+        ("HIGH", high, "purple")
+    ]
+
+    for col, (label, value, cls) in zip(
+        [c1, c2, c3, c4],
+        export_cards
+    ):
+        with col:
+            st.markdown(f"""
+            <div class="kpi">
+                <div class="kpi-label">{label}</div>
+                <div class="kpi-value {cls}">{value:,}</div>
+                <div class="kpi-note">Inspection results</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class="section-head">
+        <div class="section-title">Inspection Results</div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.dataframe(
         report_df,
-        use_container_width=True
+        use_container_width=True,
+        hide_index=True
     )
 
     csv_data = report_df.to_csv(
         index=False
     )
 
+    st.markdown('<div style="height:15px"></div>', unsafe_allow_html=True)
+
     st.download_button(
-        label="Download Inspection Report (CSV)",
+        label="⬇ Download Inspection Report (CSV)",
         data=csv_data,
         file_name="burn_in_ai_inspection_report.csv",
-        mime="text/csv"
+        mime="text/csv",
+        use_container_width=True
     )
 
-    st.markdown("---")
+    st.markdown('<div style="height:20px"></div>', unsafe_allow_html=True)
 
-    st.subheader("Report Summary")
-
-    st.write(
-        f"**Total components inspected:** {len(report_df)}"
-    )
-
-    if "risk" in analysis.columns:
-
-        st.write(
-            f"**SAFE:** "
-            f"{int((analysis['risk'] == 'SAFE').sum())}"
-        )
-
-        st.write(
-            f"**MEDIUM:** "
-            f"{int((analysis['risk'] == 'MEDIUM').sum())}"
-        )
-
-        st.write(
-            f"**HIGH:** "
-            f"{int((analysis['risk'] == 'HIGH').sum())}"
-        )
+    st.markdown("""
+    <div class="card">
+        <div class="small">REPORT SUMMARY</div>
+        <div class="metric">
+            Components inspected
+            <b class="cyan">""" + f"{total:,}" + """</b>
+        </div>
+        <div class="metric">
+            Components classified SAFE
+            <b class="green">""" + f"{safe:,}" + """</b>
+        </div>
+        <div class="metric">
+            Components requiring monitoring
+            <b class="yellow">""" + f"{medium:,}" + """</b>
+        </div>
+        <div class="metric">
+            Components requiring investigation
+            <b class="purple">""" + f"{high:,}" + """</b>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.stop()
-
-
 # ============================================================
 # OVERVIEW
 # ============================================================
