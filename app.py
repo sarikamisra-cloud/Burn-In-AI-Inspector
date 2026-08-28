@@ -407,6 +407,13 @@ with st.sidebar:
 # PAGE NAVIGATION
 # ============================================================
 
+if "component" in st.query_params:
+    st.session_state.requested_component = st.query_params["component"]
+    st.session_state.page = "Component Inspector"
+    st.query_params.clear()
+    st.rerun()
+
+
 page = st.session_state.page
 
 
@@ -1833,7 +1840,7 @@ for _, rr in top.iterrows():
             <td>
                 <a
     class="view-btn"
-    href="?component={rr[component_col]}"
+    href="?page=Component%20Inspector&component={rr[component_col]}"
     target="_self"
 >
     View
