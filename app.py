@@ -410,10 +410,211 @@ with st.sidebar:
 page = st.session_state.page
 
 if page == "Component Inspector":
+
     st.title("Component Inspector")
-    st.write("Select a component to inspect its leakage current, anomaly score, predicted value and safety status.")
-    st.info("Component inspection page")
-    st.stop()
+    st.write(
+        "Inspect an electronic component and view its current behaviour, "
+        "AI anomaly score, predicted leakage and safety status."
+    )
+
+    # -----------------------------
+    # SELECT COMPONENT
+    # -----------------------------
+
+    component_col = (
+        "component_id"
+        if "component_id" in df.columns
+        else df.columns[0]
+    )
+
+    components = df[component_col].astype(str).tolist()
+
+    selected = st.selectbox(
+        "Select Component",
+        components,
+        index=0
+    )
+
+    # Find selected component
+    idx = df.index[
+        df[component_col].astype(str) == selected
+    ][0]
+
+    r = df.loc[idx]
+    a = analysis.loc[idx]
+
+    # -----------------------------
+    # HELPER FUNCTION
+    # -----------------------------
+
+    def get_num(row, name, default=0.0):
+        try:
+            return float(row.get(name, default))
+        except:
+            return float(default)
+
+    # -----------------------------
+    # COMPONENT INFORMATION
+    # -----------------------------
+
+    lot = str(r.get("lot_id", "—"))
+    component_type = str(
+        r.get("component_type", r.get("type", "Type_A"))
+    )
+
+    v0 = get_num(r, "value_0h_uA")
+    v24 = get_num(r, "value_24h_uA")
+    v96 = get_num(r, "value_96h_uA")
+    v168 = get_num(r, "value_168h_uA")
+
+    limit = get_num(
+        r,
+        "end_of_test_limit_uA",
+        50.0
+    )
+
+    anomaly = get_num(a, "anomaly_score")
+    pred168 = get_num(a, "predicted_168h")
+    pred_slope = get_num(a, "predicted_slope")
+    margin = get_num(a, "safety_margin")
+
+    risk = str(a.get("risk", "SAFE"))
+
+    # -----------------------------
+    # RISK INFORMATION
+    # -----------------------------
+
+    if risk == "SAFE":
+        risk_text = (
+            "Component behaviour is within the expected "
+            "population and drift envelope."
+        )
+    elif risk == "MEDIUM":
+        risk_text = (
+            "Component requires closer monitoring based "
+            "on anomaly and drift indicators."
+        )
+    else:
+        risk_text = (
+            "Component is outside expected limits and "
+            "should be investigated."
+        )
+
+    # -----------------------------
+    # COMPONENT CARD
+    # -----------------------------
+
+    st.markdown("---")
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.subheader("Selected Component")
+        st.metric("Component ID", selected)
+        st.write(f"**LOT:** {lot}")
+        st.write(f"**Type:** {component_type}")
+
+    with c2:
+        st.subheader("Risk Level")
+
+        if risk == "SAFE":
+            st.success("✓ SAFE")
+        elif risk == "MEDIUM":
+            st.warning("⚠ MEDIUM")
+        else:
+            st.error("✕ HIGH")
+
+        st.write(risk_text)
+
+    with c3:
+        st.subheader("AI Prediction")
+        st.metric(
+            "Current Leakage",
+            f"{v24:.2f} μA"
+        )
+        st.metric(
+            "Predicted Leakage (168h)",
+            f"{pred168:.2f} μA"
+        )
+
+    # -----------------------------
+    # AI METRICS
+    # -----------------------------
+
+    st.markdown("---")
+    st.subheader("AI Inspection Results")
+
+    m1, m2, m3, m4 = st.columns(4)
+
+    with m1:
+        st.metric(
+            "Anomaly Score",
+            f"{anomaly:.3f}"
+        )
+
+    with m2:
+        st.metric(
+            "Predicted Slope",
+            f"{pred_slope:.3f} μA/h"
+        )
+
+    with m3:
+        st.metric(
+            "Safety Margin",
+            f"{margin:.2f} μA"
+        )
+
+    with m4:
+        st.metric(
+            "Test Limit",
+            f"{limit:.2f} μA"
+        )
+
+    # -----------------------------
+    # LEAKAGE CURRENT HISTORY
+    # -----------------------------
+
+    st.markdown("---")
+    st.subheader("Burn-In Leakage Current")
+
+    chart_df = pd.DataFrame({
+        "Time (hours)": [0, 24, 96, 168],
+        "Leakage Current (μA)": [
+            v0, v24, v96, v168
+        ]
+    })
+
+    st.line_chart(
+        chart_df.set_index("Time (hours)")
+    )
+
+    # -----------------------------
+    # FINAL INTERPRETATION
+    # -----------------------------
+
+    st.markdown("---")
+    st.subheader("AI Interpretation")
+
+    if risk == "SAFE":
+        st.success(
+            f"Component {selected} is currently classified as SAFE. "
+            f"The predicted leakage of {pred168:.2f} μA is within "
+            f"the expected operating range."
+        )
+
+    elif risk == "MEDIUM":
+        st.warning(
+            f"Component {selected} requires closer monitoring. "
+            f"The AI detected indicators of abnormal behaviour "
+            f"or increasing leakage."
+        )
+
+    else:
+        st.error(
+            f"Component {selected} is classified as HIGH RISK. "
+            f"The predicted behaviour indicates that the component "
+            f"should be investigated."
+        )
 
 elif page == "Anomaly Detection":
     st.title("Anomaly Detection")
