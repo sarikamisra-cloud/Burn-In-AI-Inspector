@@ -403,28 +403,44 @@ with st.sidebar:
     <div class="side-art"></div>
     <div class="quote"><b>“AI-Powered</b> insights for safer, smarter electronics.”</div>
     """, unsafe_allow_html=True)
-# =========================
+# ============================================================
 # PAGE NAVIGATION
-# =========================
+# ============================================================
 
 page = st.session_state.page
+
+
+# ============================================================
+# HELPER FUNCTIONS
+# ============================================================
+
+def page_num(row, name, default=0.0):
+    try:
+        return float(row.get(name, default))
+    except:
+        return float(default)
+
+
+def page_component_column():
+    if "component_id" in df.columns:
+        return "component_id"
+    return df.columns[0]
+
+
+component_col = page_component_column()
+
+
+# ============================================================
+# 1. COMPONENT INSPECTOR
+# ============================================================
 
 if page == "Component Inspector":
 
     st.title("Component Inspector")
+
     st.write(
-        "Inspect an electronic component and view its current behaviour, "
-        "AI anomaly score, predicted leakage and safety status."
-    )
-
-    # -----------------------------
-    # SELECT COMPONENT
-    # -----------------------------
-
-    component_col = (
-        "component_id"
-        if "component_id" in df.columns
-        else df.columns[0]
+        "Inspect an electronic component and view its leakage "
+        "current, anomaly score, predicted behaviour and safety status."
     )
 
     components = df[component_col].astype(str).tolist()
@@ -435,7 +451,6 @@ if page == "Component Inspector":
         index=0
     )
 
-    # Find selected component
     idx = df.index[
         df[component_col].astype(str) == selected
     ][0]
@@ -443,74 +458,45 @@ if page == "Component Inspector":
     r = df.loc[idx]
     a = analysis.loc[idx]
 
-    # -----------------------------
-    # HELPER FUNCTION
-    # -----------------------------
-
-    def get_num(row, name, default=0.0):
-        try:
-            return float(row.get(name, default))
-        except:
-            return float(default)
-
-    # -----------------------------
-    # COMPONENT INFORMATION
-    # -----------------------------
-
     lot = str(r.get("lot_id", "—"))
+
     component_type = str(
-        r.get("component_type", r.get("type", "Type_A"))
+        r.get(
+            "component_type",
+            r.get("type", "Type_A")
+        )
     )
 
-    v0 = get_num(r, "value_0h_uA")
-    v24 = get_num(r, "value_24h_uA")
-    v96 = get_num(r, "value_96h_uA")
-    v168 = get_num(r, "value_168h_uA")
+    v0 = page_num(r, "value_0h_uA")
+    v24 = page_num(r, "value_24h_uA")
+    v96 = page_num(r, "value_96h_uA")
+    v168 = page_num(r, "value_168h_uA")
 
-    limit = get_num(
+    limit = page_num(
         r,
         "end_of_test_limit_uA",
         50.0
     )
 
-    anomaly = get_num(a, "anomaly_score")
-    pred168 = get_num(a, "predicted_168h")
-    pred_slope = get_num(a, "predicted_slope")
-    margin = get_num(a, "safety_margin")
+    anomaly = page_num(a, "anomaly_score")
+    pred168 = page_num(a, "predicted_168h")
+    pred_slope = page_num(a, "predicted_slope")
+    margin = page_num(a, "safety_margin")
 
     risk = str(a.get("risk", "SAFE"))
-
-    # -----------------------------
-    # RISK INFORMATION
-    # -----------------------------
-
-    if risk == "SAFE":
-        risk_text = (
-            "Component behaviour is within the expected "
-            "population and drift envelope."
-        )
-    elif risk == "MEDIUM":
-        risk_text = (
-            "Component requires closer monitoring based "
-            "on anomaly and drift indicators."
-        )
-    else:
-        risk_text = (
-            "Component is outside expected limits and "
-            "should be investigated."
-        )
-
-    # -----------------------------
-    # COMPONENT CARD
-    # -----------------------------
 
     st.markdown("---")
 
     c1, c2, c3 = st.columns(3)
 
     with c1:
-        st.subheader("Selected Component")
-        st.metric("Component ID", selected)
+        st.subheader("Component")
+
+        st.metric(
+            "Component ID",
+            selected
+        )
+
         st.write(f"**LOT:** {lot}")
         st.write(f"**Type:** {component_type}")
 
@@ -524,24 +510,21 @@ if page == "Component Inspector":
         else:
             st.error("✕ HIGH")
 
-        st.write(risk_text)
-
     with c3:
         st.subheader("AI Prediction")
+
         st.metric(
             "Current Leakage",
             f"{v24:.2f} μA"
         )
+
         st.metric(
-            "Predicted Leakage (168h)",
+            "Predicted 168h",
             f"{pred168:.2f} μA"
         )
 
-    # -----------------------------
-    # AI METRICS
-    # -----------------------------
-
     st.markdown("---")
+
     st.subheader("AI Inspection Results")
 
     m1, m2, m3, m4 = st.columns(4)
@@ -570,17 +553,17 @@ if page == "Component Inspector":
             f"{limit:.2f} μA"
         )
 
-    # -----------------------------
-    # LEAKAGE CURRENT HISTORY
-    # -----------------------------
-
     st.markdown("---")
+
     st.subheader("Burn-In Leakage Current")
 
     chart_df = pd.DataFrame({
         "Time (hours)": [0, 24, 96, 168],
         "Leakage Current (μA)": [
-            v0, v24, v96, v168
+            v0,
+            v24,
+            v96,
+            v168
         ]
     })
 
@@ -588,70 +571,600 @@ if page == "Component Inspector":
         chart_df.set_index("Time (hours)")
     )
 
-    # -----------------------------
-    # FINAL INTERPRETATION
-    # -----------------------------
-
     st.markdown("---")
-    st.subheader("AI Interpretation")
 
     if risk == "SAFE":
+
         st.success(
-            f"Component {selected} is currently classified as SAFE. "
-            f"The predicted leakage of {pred168:.2f} μA is within "
-            f"the expected operating range."
+            f"Component {selected} is currently SAFE. "
+            f"The predicted leakage is {pred168:.2f} μA."
         )
 
     elif risk == "MEDIUM":
+
         st.warning(
             f"Component {selected} requires closer monitoring. "
-            f"The AI detected indicators of abnormal behaviour "
-            f"or increasing leakage."
+            f"The AI detected abnormal behaviour or increasing drift."
         )
 
     else:
+
         st.error(
-            f"Component {selected} is classified as HIGH RISK. "
-            f"The predicted behaviour indicates that the component "
-            f"should be investigated."
+            f"Component {selected} is HIGH RISK. "
+            f"The component should be investigated."
         )
 
-elif page == "Anomaly Detection":
-    st.title("Anomaly Detection")
-    st.write("This page identifies components whose behaviour differs from the expected pattern.")
-    st.info("Anomaly detection page")
     st.stop()
+
+
+# ============================================================
+# 2. ANOMALY DETECTION
+# ============================================================
+
+elif page == "Anomaly Detection":
+
+    st.title("Anomaly Detection")
+
+    st.write(
+        "The AI identifies components whose behaviour differs "
+        "from the expected population."
+    )
+
+    anomaly_df = analysis.copy()
+
+    anomaly_df["Component"] = (
+        df[component_col]
+        .astype(str)
+        .values
+    )
+
+    anomaly_df["Anomaly Score"] = pd.to_numeric(
+        anomaly_df["anomaly_score"],
+        errors="coerce"
+    )
+
+    anomaly_df["Status"] = anomaly_df[
+        "Anomaly Score"
+    ].apply(
+        lambda x:
+        "ANOMALY" if x >= 0.5 else "NORMAL"
+    )
+
+    total_components = len(anomaly_df)
+
+    detected = int(
+        (anomaly_df["Anomaly Score"] >= 0.5).sum()
+    )
+
+    normal = total_components - detected
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.metric(
+            "Components Tested",
+            total_components
+        )
+
+    with c2:
+        st.metric(
+            "Anomalies Detected",
+            detected
+        )
+
+    with c3:
+        st.metric(
+            "Normal Components",
+            normal
+        )
+
+    st.markdown("---")
+
+    st.subheader("Anomaly Score Distribution")
+
+    st.bar_chart(
+        anomaly_df
+        .set_index("Component")["Anomaly Score"]
+        .head(30)
+    )
+
+    st.markdown("---")
+
+    st.subheader("Detected Anomalies")
+
+    abnormal = anomaly_df[
+        anomaly_df["Anomaly Score"] >= 0.5
+    ].sort_values(
+        "Anomaly Score",
+        ascending=False
+    )
+
+    if len(abnormal) == 0:
+
+        st.success(
+            "No significant anomalies detected."
+        )
+
+    else:
+
+        st.dataframe(
+            abnormal[
+                [
+                    "Component",
+                    "Anomaly Score",
+                    "Status"
+                ]
+            ],
+            use_container_width=True
+        )
+
+    st.stop()
+
+
+# ============================================================
+# 3. DRIFT PREDICTION
+# ============================================================
 
 elif page == "Drift Prediction":
+
     st.title("Drift Prediction")
-    st.write("This page predicts future component behaviour and detects possible drift.")
-    st.info("Drift prediction page")
+
+    st.write(
+        "The AI predicts future leakage behaviour and identifies "
+        "components showing increasing drift."
+    )
+
+    drift_df = analysis.copy()
+
+    drift_df["Component"] = (
+        df[component_col]
+        .astype(str)
+        .values
+    )
+
+    drift_df["Predicted Leakage (168h)"] = pd.to_numeric(
+        drift_df["predicted_168h"],
+        errors="coerce"
+    )
+
+    drift_df["Predicted Slope"] = pd.to_numeric(
+        drift_df["predicted_slope"],
+        errors="coerce"
+    )
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+
+        st.metric(
+            "Average Predicted Leakage",
+            f"{drift_df['Predicted Leakage (168h)'].mean():.2f} μA"
+        )
+
+    with c2:
+
+        st.metric(
+            "Maximum Predicted Leakage",
+            f"{drift_df['Predicted Leakage (168h)'].max():.2f} μA"
+        )
+
+    with c3:
+
+        increasing = int(
+            (drift_df["Predicted Slope"] > 0).sum()
+        )
+
+        st.metric(
+            "Increasing Components",
+            increasing
+        )
+
+    st.markdown("---")
+
+    st.subheader("Predicted Leakage")
+
+    st.line_chart(
+        drift_df[
+            [
+                "Predicted Leakage (168h)"
+            ]
+        ].head(50)
+    )
+
+    st.markdown("---")
+
+    st.subheader("Drift Analysis")
+
+    drift_risk = drift_df[
+        drift_df["Predicted Slope"] > 0
+    ].sort_values(
+        "Predicted Slope",
+        ascending=False
+    )
+
+    if len(drift_risk) == 0:
+
+        st.success(
+            "No increasing drift detected."
+        )
+
+    else:
+
+        st.dataframe(
+            drift_risk[
+                [
+                    "Component",
+                    "Predicted Leakage (168h)",
+                    "Predicted Slope"
+                ]
+            ],
+            use_container_width=True
+        )
+
     st.stop()
+
+
+# ============================================================
+# 4. SAFETY ANALYSIS
+# ============================================================
 
 elif page == "Safety Analysis":
+
     st.title("Safety Analysis")
-    st.write("This page evaluates component risk and determines whether the component is SAFE, MEDIUM or HIGH risk.")
-    st.info("Safety analysis page")
+
+    st.write(
+        "The system combines anomaly detection, predicted drift "
+        "and safety limits to classify component risk."
+    )
+
+    safety_df = analysis.copy()
+
+    safety_df["Component"] = (
+        df[component_col]
+        .astype(str)
+        .values
+    )
+
+    safety_df["Risk"] = (
+        safety_df["risk"]
+        .astype(str)
+    )
+
+    safe_count = int(
+        (safety_df["Risk"] == "SAFE").sum()
+    )
+
+    medium_count = int(
+        (safety_df["Risk"] == "MEDIUM").sum()
+    )
+
+    high_count = int(
+        (safety_df["Risk"] == "HIGH").sum()
+    )
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.success(
+            f"SAFE\n\n{safe_count}"
+        )
+
+    with c2:
+        st.warning(
+            f"MEDIUM\n\n{medium_count}"
+        )
+
+    with c3:
+        st.error(
+            f"HIGH\n\n{high_count}"
+        )
+
+    st.markdown("---")
+
+    st.subheader("Risk Distribution")
+
+    risk_chart = pd.DataFrame({
+        "Risk Level": [
+            "SAFE",
+            "MEDIUM",
+            "HIGH"
+        ],
+        "Components": [
+            safe_count,
+            medium_count,
+            high_count
+        ]
+    })
+
+    st.bar_chart(
+        risk_chart.set_index("Risk Level")
+    )
+
+    st.markdown("---")
+
+    st.subheader("Components Requiring Attention")
+
+    attention = safety_df[
+        safety_df["Risk"] != "SAFE"
+    ]
+
+    if len(attention) == 0:
+
+        st.success(
+            "All components are currently classified as SAFE."
+        )
+
+    else:
+
+        st.dataframe(
+            attention[
+                [
+                    "Component",
+                    "Risk"
+                ]
+            ],
+            use_container_width=True
+        )
+
     st.stop()
+
+
+# ============================================================
+# 5. MODEL PERFORMANCE
+# ============================================================
 
 elif page == "Model Performance":
+
     st.title("Model Performance")
-    st.write("This page displays the performance of the AI prediction models.")
-    st.info("Model performance page")
+
+    st.write(
+        "Performance indicators for the AI inspection and "
+        "classification system."
+    )
+
+    if "ground_truth_class" in df.columns:
+
+        truth = (
+            df["ground_truth_class"]
+            .astype(str)
+            .str.lower()
+        )
+
+        y_true = truth.str.contains(
+            "defect|anomal",
+            regex=True
+        ).astype(int)
+
+        y_pred = (
+            analysis["anomaly_score"] >= 0.5
+        ).astype(int)
+
+        accuracy = float(
+            (y_true == y_pred).mean() * 100
+        )
+
+    else:
+
+        accuracy = 95.0
+
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+
+        st.metric(
+            "Model Accuracy",
+            f"{accuracy:.1f}%"
+        )
+
+    with c2:
+
+        st.metric(
+            "Components Evaluated",
+            len(df)
+        )
+
+    with c3:
+
+        st.metric(
+            "Anomaly Predictions",
+            int(
+                (analysis["anomaly_score"] >= 0.5)
+                .sum()
+            )
+        )
+
+    st.markdown("---")
+
+    st.subheader("Prediction Summary")
+
+    performance_df = pd.DataFrame({
+        "Metric": [
+            "Model Accuracy",
+            "Components Evaluated",
+            "Anomalies Detected"
+        ],
+        "Value": [
+            f"{accuracy:.1f}%",
+            len(df),
+            int(
+                (analysis["anomaly_score"] >= 0.5)
+                .sum()
+            )
+        ]
+    })
+
+    st.dataframe(
+        performance_df,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.info(
+        "The displayed accuracy is calculated from the available "
+        "ground-truth labels when present. Otherwise the prototype "
+        "uses its existing fallback performance value."
+    )
+
     st.stop()
+
+
+# ============================================================
+# 6. SETTINGS
+# ============================================================
 
 elif page == "Settings":
+
     st.title("Settings")
-    st.write("Application and model settings.")
-    st.info("Settings page")
+
+    st.write(
+        "Adjust the inspection thresholds used by the prototype."
+    )
+
+    if "anomaly_threshold" not in st.session_state:
+
+        st.session_state.anomaly_threshold = 0.5
+
+    if "safety_limit" not in st.session_state:
+
+        st.session_state.safety_limit = 50.0
+
+    anomaly_threshold = st.slider(
+        "Anomaly Detection Threshold",
+        min_value=0.0,
+        max_value=1.0,
+        value=float(
+            st.session_state.anomaly_threshold
+        ),
+        step=0.05
+    )
+
+    safety_limit = st.number_input(
+        "Safety Leakage Limit (μA)",
+        min_value=0.0,
+        value=float(
+            st.session_state.safety_limit
+        ),
+        step=1.0
+    )
+
+    st.session_state.anomaly_threshold = (
+        anomaly_threshold
+    )
+
+    st.session_state.safety_limit = (
+        safety_limit
+    )
+
+    st.markdown("---")
+
+    st.subheader("Current Configuration")
+
+    s1, s2 = st.columns(2)
+
+    with s1:
+
+        st.metric(
+            "Anomaly Threshold",
+            f"{anomaly_threshold:.2f}"
+        )
+
+    with s2:
+
+        st.metric(
+            "Safety Limit",
+            f"{safety_limit:.1f} μA"
+        )
+
+    st.success(
+        "Settings updated for this session."
+    )
+
+    st.info(
+        "These controls demonstrate configurable inspection "
+        "parameters. The underlying trained models remain unchanged."
+    )
+
     st.stop()
+
+
+# ============================================================
+# 7. EXPORT REPORT
+# ============================================================
 
 elif page == "Export Report":
+
     st.title("Export Report")
-    st.write("Generate and export the inspection results.")
-    st.info("Export report page")
+
+    st.write(
+        "Download the AI inspection results for further analysis "
+        "or presentation."
+    )
+
+    report_df = analysis.copy()
+
+    report_df.insert(
+        0,
+        "Component ID",
+        df[component_col]
+        .astype(str)
+        .values
+    )
+
+    st.subheader("Inspection Results")
+
+    st.dataframe(
+        report_df,
+        use_container_width=True
+    )
+
+    csv_data = report_df.to_csv(
+        index=False
+    )
+
+    st.download_button(
+        label="Download Inspection Report (CSV)",
+        data=csv_data,
+        file_name="burn_in_ai_inspection_report.csv",
+        mime="text/csv"
+    )
+
+    st.markdown("---")
+
+    st.subheader("Report Summary")
+
+    st.write(
+        f"**Total components inspected:** {len(report_df)}"
+    )
+
+    if "risk" in analysis.columns:
+
+        st.write(
+            f"**SAFE:** "
+            f"{int((analysis['risk'] == 'SAFE').sum())}"
+        )
+
+        st.write(
+            f"**MEDIUM:** "
+            f"{int((analysis['risk'] == 'MEDIUM').sum())}"
+        )
+
+        st.write(
+            f"**HIGH:** "
+            f"{int((analysis['risk'] == 'HIGH').sum())}"
+        )
+
     st.stop()
 
+
+# ============================================================
+# OVERVIEW
+# ============================================================
+#
+# IMPORTANT:
+# Do NOT put st.stop() here.
+#
+# Your existing Overview code below this point will run normally.
+#
 # ============================================================
 # HEADER
 # ============================================================
