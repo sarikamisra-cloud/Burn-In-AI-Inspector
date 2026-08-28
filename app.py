@@ -1806,9 +1806,18 @@ tmp["rank"] = (
     )
 )
 
+risk_order = {
+    "HIGH": 3,
+    "MEDIUM": 2,
+    "SAFE": 1
+}
+
 top = (
-    tmp.sort_values(
-        ["risk", "rank"],
+    tmp.assign(
+        risk_order=tmp["risk"].map(risk_order).fillna(0)
+    )
+    .sort_values(
+        ["risk_order", "rank"],
         ascending=[False, False]
     )
     .head(5)
