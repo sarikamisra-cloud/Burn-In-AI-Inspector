@@ -403,6 +403,53 @@ with st.sidebar:
     <div class="side-art"></div>
     <div class="quote"><b>“AI-Powered</b> insights for safer, smarter electronics.”</div>
     """, unsafe_allow_html=True)
+# =========================
+# PAGE NAVIGATION
+# =========================
+
+page = st.session_state.page
+
+if page == "Component Inspector":
+    st.title("Component Inspector")
+    st.write("Select a component to inspect its leakage current, anomaly score, predicted value and safety status.")
+    st.info("Component inspection page")
+    st.stop()
+
+elif page == "Anomaly Detection":
+    st.title("Anomaly Detection")
+    st.write("This page identifies components whose behaviour differs from the expected pattern.")
+    st.info("Anomaly detection page")
+    st.stop()
+
+elif page == "Drift Prediction":
+    st.title("Drift Prediction")
+    st.write("This page predicts future component behaviour and detects possible drift.")
+    st.info("Drift prediction page")
+    st.stop()
+
+elif page == "Safety Analysis":
+    st.title("Safety Analysis")
+    st.write("This page evaluates component risk and determines whether the component is SAFE, MEDIUM or HIGH risk.")
+    st.info("Safety analysis page")
+    st.stop()
+
+elif page == "Model Performance":
+    st.title("Model Performance")
+    st.write("This page displays the performance of the AI prediction models.")
+    st.info("Model performance page")
+    st.stop()
+
+elif page == "Settings":
+    st.title("Settings")
+    st.write("Application and model settings.")
+    st.info("Settings page")
+    st.stop()
+
+elif page == "Export Report":
+    st.title("Export Report")
+    st.write("Generate and export the inspection results.")
+    st.info("Export report page")
+    st.stop()
 
 # ============================================================
 # HEADER
