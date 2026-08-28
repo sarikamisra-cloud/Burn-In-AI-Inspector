@@ -406,6 +406,14 @@ with st.sidebar:
 # ============================================================
 # PAGE NAVIGATION
 # ============================================================
+# Handle "View" button from Overview
+if "component" in st.query_params:
+    requested_component = st.query_params["component"]
+
+    st.session_state.page = "Component Inspector"
+    st.session_state.requested_component = requested_component
+
+    st.query_params.clear()
 
 page = st.session_state.page
 
@@ -445,11 +453,38 @@ if page == "Component Inspector":
 
     components = df[component_col].astype(str).tolist()
 
-    selected = st.selectbox(
-        "Select Component",
-        components,
-        index=0
+    # Component selected from Overview "View" button
+if "requested_component" in st.session_state:
+
+    requested = st.session_state.requested_component
+
+    if requested in components:
+        st.session_state.selected_component = requested
+
+    del st.session_state.requested_component
+
+
+# Default to first component
+if "selected_component" not in st.session_state:
+    st.session_state.selected_component = components[0]
+
+
+# If saved component is not available, use first one
+if st.session_state.selected_component not in components:
+    st.session_state.selected_component = components[0]
+
+
+selected = st.selectbox(
+    "Select Component",
+    components,
+    index=components.index(
+        st.session_state.selected_component
     )
+)
+
+
+# Remember manual selections too
+st.session_state.selected_component = selected
 
     idx = df.index[
         df[component_col].astype(str) == selected
@@ -1819,9 +1854,13 @@ for _, rr in top.iterrows():
                 </span>
             </td>
             <td>
-                <button class="view-btn">
-                    View
-                </button>
+                <a
+    class="view-btn"
+    href="?component={rr[component_col]}"
+    target="_self"
+>
+    View
+</a>
             </td>
         </tr>
     """)
