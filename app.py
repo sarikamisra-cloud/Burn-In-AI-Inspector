@@ -444,13 +444,25 @@ if page == "Component Inspector":
     """, unsafe_allow_html=True)
 
     components = df[component_col].astype(str).tolist()
+    # Component selected from Overview "View" button
+    if "component_selector" not in st.session_state:
+        st.session_state.component_selector = components[0]
+
+    if "requested_component" in st.session_state:
+        requested_component = st.session_state.requested_component
+
+        if requested_component in components:
+            st.session_state.component_selector = requested_component
+
+        del st.session_state.requested_component
 
     selected = st.selectbox(
         "Select Component",
         components,
-        index=0
-    )
+        key="component_selector"
+)
 
+    st.session_state.selected_component = selected
     idx = df.index[
         df[component_col].astype(str) == selected
     ][0]
