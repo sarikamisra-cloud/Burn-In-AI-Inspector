@@ -404,39 +404,6 @@ with st.sidebar:
     <div class="quote"><b>“AI-Powered</b> insights for safer, smarter electronics.”</div>
     """, unsafe_allow_html=True)
 # ============================================================
-# PAGE NAVIGATION
-# ============================================================
-# Handle "View" button from Overview
-if "component" in st.query_params:
-    requested_component = st.query_params["component"]
-
-    st.session_state.page = "Component Inspector"
-    st.session_state.requested_component = requested_component
-
-    st.query_params.clear()
-
-page = st.session_state.page
-
-
-# ============================================================
-# HELPER FUNCTIONS
-# ============================================================
-
-def page_num(row, name, default=0.0):
-    try:
-        return float(row.get(name, default))
-    except:
-        return float(default)
-
-
-def page_component_column():
-    if "component_id" in df.columns:
-        return "component_id"
-    return df.columns[0]
-
-
-component_col = page_component_column()
-# ============================================================
 # 1. COMPONENT INSPECTOR
 # ============================================================
 
@@ -453,38 +420,11 @@ if page == "Component Inspector":
 
     components = df[component_col].astype(str).tolist()
 
-    # Component selected from Overview "View" button
-if "requested_component" in st.session_state:
-
-    requested = st.session_state.requested_component
-
-    if requested in components:
-        st.session_state.selected_component = requested
-
-    del st.session_state.requested_component
-
-
-# Default to first component
-if "selected_component" not in st.session_state:
-    st.session_state.selected_component = components[0]
-
-
-# If saved component is not available, use first one
-if st.session_state.selected_component not in components:
-    st.session_state.selected_component = components[0]
-
-
-selected = st.selectbox(
-    "Select Component",
-    components,
-    index=components.index(
-        st.session_state.selected_component
+    selected = st.selectbox(
+        "Select Component",
+        components,
+        index=0
     )
-)
-
-
-# Remember manual selections too
-st.session_state.selected_component = selected
 
     idx = df.index[
         df[component_col].astype(str) == selected
@@ -1547,7 +1487,6 @@ elif page == "Export Report":
 # Do NOT put st.stop() here.
 #
 # Your existing Overview code below this point will run normally.
-#
 # ============================================================
 # HEADER
 # ============================================================
