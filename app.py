@@ -1605,7 +1605,7 @@ highest_risk = str(
     analysis.loc[highest_risk_idx, "risk"]
 )
 
-st.markdown(f"""
+st.html(f"""
 <div class="card" style="
     margin-top:10px;
     margin-bottom:12px;
@@ -1668,7 +1668,7 @@ st.markdown(f"""
     </div>
 
 </div>
-""", unsafe_allow_html=True)
+""")
 # ============================================================
 # KPI CARDS
 # ============================================================
