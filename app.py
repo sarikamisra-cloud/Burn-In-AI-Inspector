@@ -1554,47 +1554,44 @@ st.markdown(f"""
 # ============================================================
 # AI SCREENING INTRO
 # ============================================================
-st.markdown(
-    textwrap.dedent("""
-    <div style="margin:14px 0 18px 0;">
+st.html("""
+<div style="margin:14px 0 18px 0;">
 
-        <div style="
-            color:#6e7cff;
-            font-size:9px;
-            font-weight:800;
-            letter-spacing:.16em;
-            text-transform:uppercase;
-            margin-bottom:7px;
-        ">
-            AI SCREENING INTELLIGENCE
-        </div>
-
-        <div style="
-            font-family:'Space Grotesk', sans-serif;
-            font-size:24px;
-            font-weight:700;
-            line-height:1.15;
-            color:#eef2ff;
-        ">
-            Find latent defects before they become failures.
-        </div>
-
-        <div style="
-            color:#8995af;
-            font-size:10px;
-            line-height:1.6;
-            max-width:760px;
-            margin-top:8px;
-        ">
-            Burn-In AI combines dynamic anomaly detection,
-            burn-in behavior and time-series drift prediction
-            to identify component risks before they become failures.
-        </div>
-
+    <div style="
+        color:#6e7cff;
+        font-size:9px;
+        font-weight:800;
+        letter-spacing:.16em;
+        text-transform:uppercase;
+        margin-bottom:7px;
+    ">
+        AI SCREENING INTELLIGENCE
     </div>
-    """),
-    unsafe_allow_html=True
-)
+
+    <div style="
+        font-family:'Space Grotesk', sans-serif;
+        font-size:24px;
+        font-weight:700;
+        line-height:1.15;
+        color:#eef2ff;
+    ">
+        Find latent defects before they become failures.
+    </div>
+
+    <div style="
+        color:#8995af;
+        font-size:10px;
+        line-height:1.6;
+        max-width:760px;
+        margin-top:8px;
+    ">
+        Burn-In AI combines dynamic anomaly detection,
+        burn-in behavior and time-series drift prediction
+        to identify component risks before they become failures.
+    </div>
+
+</div>
+""")
 highest_risk_idx = analysis["anomaly_score"].idxmax()
 highest_risk_component = str(
     df.loc[highest_risk_idx, component_col]
