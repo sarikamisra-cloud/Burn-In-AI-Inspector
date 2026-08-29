@@ -1555,10 +1555,8 @@ st.markdown(f"""
 # AI SCREENING INTRO
 # ============================================================
 st.markdown("""
-<div style="
-    margin:14px 0 18px 0;
-    padding:4px 2px;
-">
+<div style="margin:14px 0 18px 0;">
+
     <div style="
         color:#6e7cff;
         font-size:9px;
@@ -1591,6 +1589,7 @@ st.markdown("""
         burn-in behavior and time-series drift prediction
         to identify component risks before they become failures.
     </div>
+
 </div>
 """, unsafe_allow_html=True)
 highest_risk_idx = analysis["anomaly_score"].idxmax()
