@@ -1551,7 +1551,87 @@ st.markdown(f"""
   </div>
 </div>
 """, unsafe_allow_html=True)
+# ============================================================
+# AI SCREENING INTRO
+# ============================================================
 
+highest_risk_idx = analysis["anomaly_score"].idxmax()
+highest_risk_component = str(
+    df.loc[highest_risk_idx, component_col]
+)
+
+highest_risk_score = float(
+    analysis.loc[highest_risk_idx, "anomaly_score"]
+)
+
+highest_risk = str(
+    analysis.loc[highest_risk_idx, "risk"]
+)
+
+st.markdown(f"""
+<div class="card" style="
+    margin-top:10px;
+    margin-bottom:12px;
+    padding:20px 22px;
+    position:relative;
+    overflow:hidden;
+">
+
+    <div style="
+        color:#6e7cff;
+        font-size:9px;
+        font-weight:800;
+        letter-spacing:.16em;
+        text-transform:uppercase;
+        margin-bottom:7px;
+    ">
+        AI SCREENING INTELLIGENCE
+    </div>
+
+    <div style="
+        font-family:'Space Grotesk';
+        font-size:24px;
+        font-weight:700;
+        line-height:1.15;
+        color:#eef2ff;
+    ">
+        Find latent defects before they become failures.
+    </div>
+
+    <div style="
+        color:#8995af;
+        font-size:10px;
+        line-height:1.6;
+        max-width:760px;
+        margin-top:8px;
+    ">
+        Burn-In AI combines dynamic anomaly detection,
+        burn-in behaviour and time-series drift prediction
+        to identify components that may require attention
+        before conventional screening limits are exceeded.
+    </div>
+
+    <div style="
+        margin-top:13px;
+        display:inline-block;
+        padding:7px 12px;
+        border-radius:8px;
+        background:rgba(130,85,255,.08);
+        border:1px solid rgba(155,115,255,.30);
+        color:#b394ff;
+        font-size:9px;
+        font-weight:700;
+    ">
+        Highest-risk component:
+        {highest_risk_component}
+        &nbsp; · &nbsp;
+        {highest_risk}
+        &nbsp; · &nbsp;
+        anomaly {highest_risk_score:.3f}
+    </div>
+
+</div>
+""", unsafe_allow_html=True)
 # ============================================================
 # KPI CARDS
 # ============================================================
